@@ -1,0 +1,220 @@
+import sys
+import os
+
+from PyQt6.QtGui import QIcon
+# Импорт необходимых классов из библиотеки PyQt6 для создания GUI приложения
+from PyQt6.QtWidgets import (
+    QApplication,  # Основной класс для создания PyQt приложения
+    QMainWindow,   # Класс для создания главного окна приложения
+    QTabWidget,    # Класс для создания виджета с вкладками
+    QWidget,       # Базовый класс для всех объектов пользовательского интерфейса
+    QVBoxLayout,   # Класс для вертикальной компоновки виджетов
+    QPushButton,   # Класс для создания кнопок
+    QLabel,        # Класс для отображения текста
+    QFileDialog,   # Класс для создания диалогов открытия и сохранения файлов
+    QTextEdit,     # Класс для создания многострочного текстового редактора
+    QLineEdit,     # Класс для создания однострочного поля ввода текста
+    QFormLayout,   # Класс для создания формы с метками и полями ввода
+    QMessageBox    # Класс для создания всплывающих сообщений
+)
+
+# Определение класса основного окна приложения, наследуемого от QMainWindow
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()  # Вызов конструктора родительского класса QMainWindow
+
+        # Задание заголовка окна
+        self.setWindowTitle("Приложение для ПЗ4")
+        # self.setWindowIcon(QIcon('editing.png')) пока эта строчка не работает
+        self.setStyleSheet("background-color:#B0C4DE;")
+
+        # Установка начальной геометрии окна (позиция и размер)
+        self.setGeometry(100, 100, 800, 600)
+
+        # Создание вкладочного интерфейса в качестве центрального виджета
+        self.tabs = QTabWidget()
+        self.setCentralWidget(self.tabs)
+
+        # Добавление различных вкладок в виджет
+        self.tabs.addTab(self.create_folder_tab(), "Сканировать папку")
+        self.tabs.addTab(self.create_edit_tab(), "Редактировать файл")
+        self.tabs.addTab(self.create_save_tab(), "Сохранить файл")
+        self.tabs.addTab(self.create_form_tab(), "Форма/Сохранение")
+        self.tabs.addTab(self.create_read_tab(), "Чтение листа")
+
+    # Метод для создания вкладки "Сканировать папку"
+    def create_folder_tab(self):
+        tab = QWidget()  # Создание нового виджета-вкладки
+        layout = QVBoxLayout()  # Установка вертикального компоновщика для вкладки
+
+        # Добавление текстовой метки и многострочного текстового редактора для отображения файлов
+        self.folder_label = QLabel("Выберите папку для сканирования")
+        self.files_list = QTextEdit()
+        self.files_list.setReadOnly(True)  # Установить текстовый редактор только для чтения
+
+        # Создание кнопки для выбора папки и подключение её к методу
+        browse_button = QPushButton("Выбрать папку")
+        browse_button.clicked.connect(self.browse_folder)
+
+        # Добавление всех виджетов в компоновку
+        layout.addWidget(self.folder_label)
+        layout.addWidget(browse_button)
+        layout.addWidget(self.files_list)
+
+        # Установка компоновки на вкладку и возврат вкладки
+        tab.setLayout(layout)
+        return tab
+
+    # Метод для выбора и отображения содержимого папки
+    def browse_folder(self):
+        # Диалог для получения пути к выбранной папке
+        folder = QFileDialog.getExistingDirectory(self, "Выберите папку")
+        if folder:
+            files = os.listdir(folder)  # Список файлов в папке
+            self.folder_label.setText(f"Выбрана папка: {folder}")
+            self.files_list.setText("\n".join(files))  # Отобразить файл
+
+    # Метод для создания вкладки "Редактировать файл"
+    def create_edit_tab(self):
+        tab = QWidget()  # Создание нового виджета-вкладки
+        layout = QVBoxLayout()  # Установка вертикального компоновщика для вкладки
+
+        # Добавление многострочного текстового редактора для редактирования файлов
+        self.text_edit = QTextEdit()
+
+        # Создание кнопки для открытия файла и подключение её к методу
+        open_button = QPushButton("Открыть файл")
+        open_button.clicked.connect(self.open_file)
+
+        # Добавление всех виджетов в компоновку
+        layout.addWidget(open_button)
+        layout.addWidget(self.text_edit)
+
+        # Установка компоновки на вкладку и возврат вкладки
+        tab.setLayout(layout)
+        return tab
+
+    # Метод для открытия выбранного файла
+    def open_file(self):
+        # Диалог для получения пути к выбранному файлу
+        file_path, _ = QFileDialog.getOpenFileName(self, "Открыть файл", "", "Text Files (*.txt);;All Files (*)")
+        if file_path:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    self.text_edit.setText(file.read())  # Чтение файла и отображение его в текстовом редакторе
+            except Exception as e:
+                # В случае ошибки открытия показать сообщение об ошибке
+                QMessageBox.critical(self, "Ошибка", f"Не удалось открыть файл: {str(e)}")
+
+    # Метод для создания вкладки "Сохранить файл"
+    def create_save_tab(self):
+        tab = QWidget()  # Создание нового виджета-вкладки
+        layout = QVBoxLayout()  # Установка вертикального компоновщика для вкладки
+
+        # Создание кнопки для сохранения файла и подключение её к методу
+        save_button = QPushButton("Сохранить файл")
+        save_button.clicked.connect(self.save_file)
+
+        # Добавление всех виджетов в компоновку
+        layout.addWidget(save_button)
+        layout.addWidget(QLabel("Текст для сохранения:"))
+        layout.addWidget(self.text_edit)
+
+        # Установка компоновки на вкладку и возврат вкладки
+        tab.setLayout(layout)
+        return tab
+
+    # Метод для сохранения файла
+    def save_file(self):
+        # Диалог для получения пути к файлу для сохранения
+        file_path, _ = QFileDialog.getSaveFileName(self, "Сохранить файл", "", "Text Files (*.txt);;All Files (*)")
+        if file_path:
+            try:
+                # Открытие или создание файла и запись текста из текстового редактора
+                with open(file_path, 'w', encoding='utf-8') as file:
+                    file.write(self.text_edit.toPlainText())
+            except Exception as e:
+                # В случае ошибки сохранить показать сообщение об ошибке
+                QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить файл: {str(e)}")
+
+    # Метод для создания вкладки "Форма/Сохранение"
+    def create_form_tab(self):
+        tab = QWidget()  # Создание нового виджета-вкладки
+        layout = QFormLayout()  # Установка форменной компоновки для вкладки
+
+        self.fields = {}  # Словарь для хранения полей ввода
+        for i in range(5):
+            line_edit = QLineEdit()  # Создание однострочного поля ввода
+            layout.addRow(f"Поле {i+1}:", line_edit)  # Добавление метки и поля ввода
+            self.fields[f"Поле {i+1}"] = line_edit
+
+        # Создание кнопки для сохранения данных и подключение её к методу
+        save_button = QPushButton("Сохранить данные")
+        save_button.clicked.connect(self.save_form_data)
+
+        # Добавление кнопки в компоновку
+        layout.addWidget(save_button)
+        tab.setLayout(layout)
+        return tab
+
+    # Метод для сохранения введённых данных
+    def save_form_data(self):
+        # Диалог для получения пути к файлу для сохранения данных
+        file_path, _ = QFileDialog.getSaveFileName(self, "Сохранить данные как", "", "Text Files (*.txt);;All Files (*)")
+        if file_path:
+            try:
+                # Открытие или создание файла и запись введённых данных
+                with open(file_path, 'a', encoding='utf-8') as file:
+                    for key, field in self.fields.items():
+                        file.write(f"{key}: {field.text()}\n")
+            except Exception as e:
+                # В случае ошибки сохранить показать сообщение об ошибке
+                QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить данные: {str(e)}")
+
+    # Метод для создания вкладки "Чтение листа"
+    def create_read_tab(self):
+        tab = QWidget()  # Создание нового виджета-вкладки
+        layout = QVBoxLayout()  # Установка вертикального компоновщика для вкладки
+
+        # Создание текстовой метки для отображения информации о файле
+        self.read_output = QLabel()
+
+        # Создание кнопки для выбора файла чтения и подключение её к методу
+        read_button = QPushButton("Выбрать файл для чтения")
+        read_button.clicked.connect(self.read_file)
+
+        # Добавление всех виджетов в компоновку
+        layout.addWidget(read_button)
+        layout.addWidget(self.read_output)
+
+        # Установка компоновки на вкладку и возврат вкладки
+        tab.setLayout(layout)
+        return tab
+
+    # Метод для чтения содержимого выбранного файла
+    def read_file(self):
+        # Диалог для получения пути к открытому файлу
+        file_path, _ = QFileDialog.getOpenFileName(self, "Открыть файл", "", "Text Files (*.txt);;All Files (*)")
+        if file_path:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    # Чтение строк файла и проверка его содержимого
+                    content = file.readlines()
+                    if content:
+                        self.read_output.setText(f"Файл содержит {len(content)} элементов.\nПервый элемент: {content[0].strip()}")
+                    else:
+                        self.read_output.setText("Файл пустой.")
+            except Exception as e:
+                # В случае ошибки прочтения показать сообщение об ошибке
+                QMessageBox.critical(self, "Ошибка", f"Не удалось прочитать файл: {str(e)}")
+
+# Основная функция для запуска приложения
+def main():
+    app = QApplication(sys.argv)  # Создание экземпляра приложения
+    window = MainWindow()        # Создание экземпляра главного окна
+    window.show()                # Отображение главного окна
+    sys.exit(app.exec())         # Запуск главного цикла приложения
+
+# Проверка того, что скрипт запускается напрямую, а не импортируется
+if __name__ == '__main__':
+    main()  # Вызов основной функции
